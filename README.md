@@ -71,11 +71,6 @@ If the critic finds problems:
 
 If retries run out, it says: *"I don't have enough information to answer that question."*
 
-## Requirements
-
-- Python 3.11+
-- OpenRouter API key
-
 ## Project structure
 
 ```
