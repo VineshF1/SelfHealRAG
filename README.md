@@ -92,3 +92,9 @@ If retries run out, it says: *"I don't have enough information to answer that qu
 ## Tech stack
 
 Built with LangGraph · ChromaDB · OpenRouter
+
+## Author
+
+**Vinesh**
+
+Built with ❤️
