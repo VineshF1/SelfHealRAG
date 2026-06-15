@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "self-healing-rag"
+version = "0.1.0"
+description = "Self-Healing RAG Pipeline with LangGraph — stateful, cyclical retrieval-augmented generation with critique and self-correction."
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph>=0.4.0,<0.5.0",
+    "chromadb>=1.0.0,<2.0.0",
+    "openai>=1.0.0,<2.0.0",
+    "python-dotenv>=1.0.0,<2.0.0",
+    "typing-extensions>=4.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+self-healing-rag = "self_healing_rag.main:main"
