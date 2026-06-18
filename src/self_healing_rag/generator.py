@@ -1,17 +1,11 @@
-"""LLM-based answer generator using OpenRouter (OpenAI-compatible API)."""
-
+"""LLM-based answer generator using OpenRouter."""
 import logging
 import os
-from typing import Optional
-
 from openai import OpenAI
-
 from .state import Document
 from .rate_limiter import RateLimiter
 
 logger = logging.getLogger(__name__)
-
-# ── Prompt templates ───────────────────────────────────────
 
 GENERATION_PROMPT = """You are a helpful assistant that answers questions based **only** on the provided context documents.
 
@@ -30,28 +24,18 @@ GENERATION_PROMPT = """You are a helpful assistant that answers questions based 
 ## Answer
 """
 
-
 class Generator:
-    """Generates answers from retrieved documents using OpenRouter."""
-
-    def __init__(
-        self,
-        model: str = "nvidia/nemotron-3-nano-30b-a3b:free",
-        rpm: int = 60,
-    ):
+    def __init__(self, model: str = "nvidia/nemotron-3-nano-30b-a3b:free", rpm: int = 60):
         self.model_name = model
         self._client = None
         self._limiter = RateLimiter(rpm=rpm)
 
     @property
     def client(self):
-        """Lazy-init the OpenRouter client."""
         if self._client is None:
             api_key = os.getenv("OPENROUTER_API_KEY")
             if not api_key:
-                raise RuntimeError(
-                    "OPENROUTER_API_KEY not set. Get one at https://openrouter.ai/keys"
-                )
+                raise RuntimeError("OPENROUTER_API_KEY not set")
             self._client = OpenAI(
                 api_key=api_key,
                 base_url="https://openrouter.ai/api/v1",
@@ -63,12 +47,8 @@ class Generator:
         return self._client
 
     def generate(self, query: str, documents: list[Document]) -> str:
-        """Produce a grounded answer from *query* and *documents*."""
-        context_parts = []
-        for i, doc in enumerate(documents, 1):
-            context_parts.append(f"[Source: {doc.source}]\n{doc.content}")
+        context_parts = [f"[Source: {doc.source}]\n{doc.content}" for doc in documents]
         context = "\n\n---\n\n".join(context_parts)
-
         prompt = GENERATION_PROMPT.format(query=query, context=context)
 
         with self._limiter:
@@ -78,5 +58,4 @@ class Generator:
                 temperature=0.2,
                 max_tokens=1024,
             )
-
         return response.choices[0].message.content.strip()

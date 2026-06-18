@@ -1,31 +1,6 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-dist/
-build/
-
-# Virtual environment
-.venv/
-venv/
-env/
-
-# Environment variables
 .env
-
-# ChromaDB persistent storage (temp dirs get cleaned up, but just in case)
-chroma_rag_*
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Hermes project memory
-.hermes/
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+chroma_db/

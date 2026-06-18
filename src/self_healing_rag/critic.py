@@ -1,13 +1,9 @@
-"""Critic agent — evaluates generation quality for grounding and hallucination detection.
-Uses OpenRouter (OpenAI-compatible API) and respects rate limits."""
-
+"""Critic agent — evaluates generation quality and reformulates queries."""
 import json
 import logging
 import os
 import re
-
 from openai import OpenAI
-
 from .state import Document
 from .rate_limiter import RateLimiter
 
@@ -61,13 +57,7 @@ explanations, no prefixes.
 
 
 class Critic:
-    """Evaluates a generation's grounding against retrieved documents using OpenRouter."""
-
-    def __init__(
-        self,
-        model: str = "nvidia/nemotron-3-nano-30b-a3b:free",
-        rpm: int = 60,
-    ):
+    def __init__(self, model: str = "nvidia/nemotron-3-nano-30b-a3b:free", rpm: int = 60):
         self.model_name = model
         self._client = None
         self._limiter = RateLimiter(rpm=rpm)
@@ -89,16 +79,9 @@ class Critic:
         return self._client
 
     def evaluate(self, query: str, documents: list[Document], generation: str):
-        """Run the critique and return (passed: bool, score: float, feedback: str)."""
-        context_parts = []
-        for i, doc in enumerate(documents, 1):
-            context_parts.append(f"[Source: {doc.source}]\n{doc.content}")
+        context_parts = [f"[Source: {doc.source}]\n{doc.content}" for doc in documents]
         context = "\n\n---\n\n".join(context_parts)
-
-        prompt = CRITIC_PROMPT.format(
-            context=context,
-            generation=generation,
-        )
+        prompt = CRITIC_PROMPT.format(context=context, generation=generation)
 
         with self._limiter:
             response = self.client.chat.completions.create(
@@ -109,8 +92,6 @@ class Critic:
             )
 
         raw = response.choices[0].message.content.strip()
-
-        # Try to extract JSON from the response (handle markdown fences)
         try:
             cleaned = re.sub(r'^```(?:json)?\s*', '', raw)
             cleaned = re.sub(r'\s*```$', '', cleaned)
@@ -119,21 +100,11 @@ class Critic:
             logger.warning("Critic returned non-JSON output:\n%s", raw)
             return True, 0.5, "Could not parse critic output — assuming passed."
 
-        passed = bool(result.get("passed", True))
-        score = float(result.get("score", 0.5))
-        feedback = str(result.get("feedback", "No feedback provided."))
-
-        return passed, score, feedback
+        return bool(result.get("passed", True)), float(result.get("score", 0.5)), str(result.get("feedback", ""))
 
 
 class QueryReformulator:
-    """Reformulates the query based on critic feedback using OpenRouter."""
-
-    def __init__(
-        self,
-        model: str = "nvidia/nemotron-3-nano-30b-a3b:free",
-        rpm: int = 60,
-    ):
+    def __init__(self, model: str = "nvidia/nemotron-3-nano-30b-a3b:free", rpm: int = 60):
         self.model_name = model
         self._client = None
         self._limiter = RateLimiter(rpm=rpm)
@@ -155,17 +126,9 @@ class QueryReformulator:
         return self._client
 
     def reformulate(self, query: str, feedback: str, documents: list[Document]) -> str:
-        """Produce a better query for the next retrieval round."""
-        context_parts = []
-        for i, doc in enumerate(documents, 1):
-            context_parts.append(f"[Source: {doc.source}]\n{doc.content}")
+        context_parts = [f"[Source: {doc.source}]\n{doc.content}" for doc in documents]
         context = "\n\n---\n\n".join(context_parts)
-
-        prompt = QUERY_REFORMULATION_PROMPT.format(
-            query=query,
-            critic_feedback=feedback,
-            context=context,
-        )
+        prompt = QUERY_REFORMULATION_PROMPT.format(query=query, critic_feedback=feedback, context=context)
 
         with self._limiter:
             response = self.client.chat.completions.create(
@@ -174,7 +137,6 @@ class QueryReformulator:
                 temperature=0.3,
                 max_tokens=256,
             )
-
         new_query = response.choices[0].message.content.strip()
         logger.info("Reformulated query: %r -> %r", query, new_query)
         return new_query

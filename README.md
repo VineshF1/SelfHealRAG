@@ -2,40 +2,34 @@
 
 A RAG pipeline that checks its own work. The LLM writes an answer, a critic reviews it, and if it's not good enough — it rewrites the question and tries again. No more hallucinated or poorly grounded answers.
 
-```
-                       START (user query)
-                              │
-                              ▼
-                       ┌──────────────────┐
-                       │    RETRIEVE      │
-                       │   (ChromaDB)     │
-                       └────────┬─────────┘
-                                │
-                                ▼
-                       ┌──────────────────┐
-                       │    GENERATE      │
-                       │     (LLM)        │
-                       └────────┬─────────┘
-                                │
-                                ▼
-                       ┌──────────────────┐
-                       │    CRITIQUE      │
-                       │  (factuality)    │
-                       └────────┬─────────┘
-                            ┌───┴───┐
-                            ▼       ▼
-                        PASSED   FAILED
-                            │     ┌───┴───┐
-                            │     ▼       ▼
-                            │  RETRIES  EXHAUSTED
-                            │  LEFT     (fallback)
-                            │     │       │
-                            │  REFORMULATE│
-                            │     │       │
-                            └──(END)─┘    │
-                                     ┌────┴────┐
-                                     │  END    │
-                                     └─────────┘
+## Architecture
+
+```mermaid
+flowchart TB
+    Q["<b>User Query</b>"]
+    RET["<b>Retrieve</b><br/>ChromaDB + NVIDIA NIM"]
+    GEN["<b>Generate</b><br/>LLM produces answer"]
+    CRITIC{"<b>Critic</b><br/>Evaluate answer quality"}
+    REFORM["<b>Reformulate Query</b><br/>LLM rewrites based on feedback"]
+    FALLBACK["<b>Fallback</b><br/>Graceful degradation"]
+    OUT["<b>Final Answer</b>"]
+
+    Q --> RET
+    RET --> GEN
+    GEN --> CRITIC
+    CRITIC -- PASS --> OUT
+    CRITIC -- FAIL + retries left --> REFORM
+    REFORM --> RET
+    CRITIC -- FAIL + retries exhausted --> FALLBACK
+    FALLBACK --> OUT
+
+    style Q fill:#6366f1,stroke:#818cf8,stroke-width:2px,color:#fff
+    style RET fill:#0ea5e9,stroke:#38bdf8,stroke-width:2px,color:#fff
+    style GEN fill:#f59e0b,stroke:#fbbf24,stroke-width:2px,color:#fff
+    style CRITIC fill:#ef4444,stroke:#f87171,stroke-width:2px,color:#fff
+    style REFORM fill:#7c3aed,stroke:#a78bfa,stroke-width:2px,color:#fff
+    style FALLBACK fill:#ec4899,stroke:#f472b6,stroke-width:2px,color:#fff
+    style OUT fill:#10b981,stroke:#34d399,stroke-width:2px,color:#fff
 ```
 
 ## How it works
@@ -50,7 +44,7 @@ A RAG pipeline that checks its own work. The LLM writes an answer, a critic revi
 ```
 > What is a self-healing RAG pipeline?
 
-📄 Retrieve → searched 4 documents
+🔍 Retrieve → searched 4 documents
 ✏️  Generate → wrote a 342-character answer
 🔍 Critique → score 0.92 ✅ PASS
 
@@ -63,18 +57,13 @@ If the critic finds problems:
 ```
 🔍 Critique → score 0.30 ❌ FAIL
    "Answer contains claims not in the retrieved documents."
-🔄 Reformulate → rewrote query for better search
-📄 Retrieve → searched again
+🔁 Reformulate → rewrote query for better search
+🔍 Retrieve → searched again
 ✏️  Generate → corrected answer
 🔍 Critique → score 0.95 ✅ PASS
 ```
 
 If retries run out, it says: *"I don't have enough information to answer that question."*
-
-## Requirements
-
-- Python 3.11+
-- OpenRouter API key
 
 ## Project structure
 
@@ -92,3 +81,9 @@ If retries run out, it says: *"I don't have enough information to answer that qu
 ## Tech stack
 
 Built with LangGraph · ChromaDB · OpenRouter
+
+## Author
+
+**Vinesh**
+
+Built with ❤️
