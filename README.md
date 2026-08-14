@@ -2,6 +2,10 @@
 
 A RAG pipeline that checks its own work. The LLM writes an answer, a critic reviews it, and if it's not good enough — it rewrites the question and tries again. No more hallucinated or poorly grounded answers.
 
+## Project Status
+
+This is a working prototype, not production-ready.
+
 ## Architecture
 
 ```mermaid
